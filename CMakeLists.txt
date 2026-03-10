@@ -13,7 +13,7 @@ endif()
 # Set compiler-specific flags for g++ and MinGW
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if(LINUX OR WINDOWS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-ignored-qualifiers")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ldwmapi -Wall -Wextra -Wno-unused-parameter -Wno-ignored-qualifiers")
     endif()
 endif()
 
@@ -48,26 +48,27 @@ else() # Linux
 endif()
 
 add_executable(demo Application.cpp
-                          imgui/imgui_demo.cpp
-                          imgui/imgui_draw.cpp
-                          imgui/imgui_tables.cpp
-                          imgui/imgui_widgets.cpp
-                          imgui/imgui.cpp
-                          classes/Bit.cpp
-                          classes/BitHolder.cpp
-                          classes/Game.cpp
-                          classes/Sprite.cpp
-                          classes/Square.cpp
-                          classes/ChessSquare.cpp
-                          classes/Grid.cpp
-                          classes/TicTacToe.cpp
-                          classes/Checkers.cpp
-                          classes/Othello.cpp
-                          classes/Chess.cpp
-                          ${BCKD_FILE}
-                          ${MAIN_FILE}
-                          ${IMPL_FILE}
-                )
+                    imgui/imgui_demo.cpp
+                    imgui/imgui_draw.cpp
+                    imgui/imgui_tables.cpp
+                    imgui/imgui_widgets.cpp
+                    imgui/imgui.cpp
+                    classes/Bit.cpp
+                    classes/BitHolder.cpp
+                    classes/Game.cpp
+                    classes/Sprite.cpp
+                    classes/Square.cpp
+                    classes/ChessSquare.cpp
+                    classes/Grid.cpp
+                    classes/TicTacToe.cpp
+                    classes/Checkers.cpp
+                    classes/Othello.cpp
+                    classes/Chess.cpp
+                    classes/Bitboard.h
+                    ${BCKD_FILE}
+                    ${MAIN_FILE}
+                    ${IMPL_FILE}
+)
 
 if(MACOS OR LINUX)
     target_link_libraries(demo ${OPENGL_gl_LIBRARY} glfw)
@@ -80,6 +81,7 @@ elseif(WINDOWS)
         user32.lib 
         gdi32.lib 
         winmm.lib
+        dwmapi.lib
     )
 endif()
 

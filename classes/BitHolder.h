@@ -1,4 +1,6 @@
 #pragma once
+#include <stdint.h>
+
 #include "Sprite.h"
 #include "Bit.h"
 
@@ -21,7 +23,8 @@ public:
 	// destroy the current piece, triggering any associated animations
 	void destroyBit();
 	// gametag can be used by games for any purpose
-	const int gameTag() { return _gameTag; };
+	const int gameTag() { return _gameTag; }
+
 	// set the gametag
 	void setGameTag(int tag) { _gameTag = tag; };
 	// convenience function to see if the holder is empty

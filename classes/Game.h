@@ -12,6 +12,7 @@
 #include <chrono>
 #include <ctime>
 #include <future>
+#include <cmath>
 
 #ifdef _MSC_VER
 #include <intrin.h>
