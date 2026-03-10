@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Grid.h"
 #include "Bitboard.h"
+#include <cassert>
 
 constexpr int pieceSize = 80;
 
@@ -36,10 +37,16 @@ private:
 
     bool isValidMove(BitMove move);
 
+    void generateRookMoves(std::vector<BitMove> &moves, BitBoard rookBoard, BitBoard occupacy);
+
+    void generateBishopMoves(std::vector<BitMove> &moves, BitBoard bishopBoard, BitBoard occupacy);
+
+    void generateQueenMoves(std::vector<BitMove> &moves, BitBoard queenBoard, BitBoard occupacy);
+
     void generateMoves(std::vector<BitMove> &moves);
-    void generatePawnMoves(std::vector<BitMove> &moves, BitBoard pawnBoard, BitBoard enemyPieces);
+    void generatePawnMoves(std::vector<BitMove> &moves, BitBoard pawnBoard, BitBoard occupacy, BitBoard enemyPieces);
     void generateKnightMoves(std::vector<BitMove> &moves, BitBoard knightBoard, BitBoard occupacy);
-    void generateKingMoves(std::vector<BitMove> &moves, BitBoard kingBoard);
+    void generateKingMoves(std::vector<BitMove> &moves, BitBoard kingBoard, BitBoard occupacy);
 
     void generateKnightAttacks();
 
@@ -47,6 +54,7 @@ private:
 
     Grid* _grid;
     BitBoard occupacy;
-    BitBoard PieceBoards[6][2];
+    BitBoard occupacy_by_player[2];
+    BitBoard piece_boards[6][2];
     BitBoard KnightAttacks[64];
 };

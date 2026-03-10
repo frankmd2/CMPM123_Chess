@@ -92,9 +92,12 @@ void Chess::FENtoBoard(const std::string& fen) {
 
 void Chess::generateMoves(std::vector<BitMove> &moves) {
     for (int i = 0; i < 6; i ++) {
-        PieceBoards[i][0] = 0;
-        PieceBoards[i][1] = 0;
+        piece_boards[i][0] = 0;
+        piece_boards[i][1] = 0;
     }
+    occupacy = BitBoard(0);
+    occupacy_by_player[0] = BitBoard(0);
+    occupacy_by_player[1] = BitBoard(0);
 
     std::string state = stateString();
     for (int i = 0; i < state.size(); i++) {
@@ -109,47 +112,153 @@ void Chess::generateMoves(std::vector<BitMove> &moves) {
             else if (c == 'k' || c == 'K') piece = King;
 
             int playerNumber = std::isupper(c) ? 0 : 1;
-            PieceBoards[piece - 1][playerNumber] |= (1ULL << i);
+            piece_boards[piece - 1][playerNumber] |= (1ULL << i);
+            occupacy |= (1ULL << i);
+            occupacy_by_player[playerNumber] |= (1ULL << i);
         }
     }
 
     int currentPlayer = getCurrentPlayer()->playerNumber();
-    //generatePawnMoves(moves, PieceBoards[Pawn - 1][currentPlayer], occupacy);
-    generateKnightMoves(moves, PieceBoards[Knight - 1][currentPlayer], TODO);
-    //generateKingMoves(moves, PieceBoards[King - 1][currentPlayer]);
+    generatePawnMoves(moves, piece_boards[Pawn - 1][currentPlayer], occupacy_by_player[currentPlayer], occupacy);
+    generateKnightMoves(moves, piece_boards[Knight - 1][currentPlayer], occupacy_by_player[currentPlayer]);
+    generateBishopMoves(moves, piece_boards[Bishop - 1][currentPlayer], occupacy_by_player[currentPlayer]);
+    generateRookMoves(moves, piece_boards[Rook - 1][currentPlayer], occupacy_by_player[currentPlayer]);
+    generateQueenMoves(moves, piece_boards[Queen - 1][currentPlayer], occupacy_by_player[currentPlayer]);
+    generateKingMoves(moves, piece_boards[King - 1][currentPlayer], occupacy_by_player[currentPlayer]);
 
-    std::cout << "Generated " << moves.size() << " moves" << std::endl;
+    if (moves.size() >= 20)
+        std::cout << "at least 20 moves" << std::endl;
 }
 
 bool Chess::isValidMove(BitMove move) {
-    ChessSquare fromSquare = *_grid->getSquare(move.from % 8, move.from / 8);
-    ChessSquare toSquare = *_grid->getSquare(move.to % 8, move.to / 8);
-
-    // if the target location is empty, return true
-    if (toSquare.empty()) return true;
-
-    // if the color are the same, return false
-    if ((fromSquare.bit()->gameTag() & 128) == (toSquare.bit()->gameTag() & 128)) return false;
-
     return true;
 }
 
-void Chess::generatePawnMoves(std::vector<BitMove> &moves, BitBoard pawnBoard, BitBoard enemyPieces) {
+void Chess::generateRookMoves(std::vector<BitMove> &moves, BitBoard rookBoard, BitBoard occupacy) {
+    rookBoard.forEachBit([&](int fromSquare) {
+        int rank = fromSquare / 8;
+        int file = fromSquare % 8;
 
+        // Generate moves in the four cardinal directions
+        const int directions[4][2] = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+        };
+
+        for (const auto& direction : directions) {
+            int newRank = rank + direction[0];
+            int newFile = file + direction[1];
+
+            while (newRank >= 0 && newRank < 8 && newFile >= 0 && newFile < 8) {
+                int toSquare = newRank * 8 + newFile;
+                if (occupacy.getData() & (1ULL << toSquare)) {
+                    break;
+                }
+                moves.emplace_back(fromSquare, toSquare, Rook);
+                newRank += direction[0];
+                newFile += direction[1];
+            }
+        }
+    });
+}
+
+void Chess::generateBishopMoves(std::vector<BitMove> &moves, BitBoard bishopBoard, BitBoard occupacy) {
+    bishopBoard.forEachBit([&](int fromSquare) {
+        int rank = fromSquare / 8;
+        int file = fromSquare % 8;
+
+        // Generate moves in the four diagonal directions
+        const int directions[4][2] = {
+            {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+        };
+
+        for (const auto& direction : directions) {
+            int newRank = rank + direction[0];
+            int newFile = file + direction[1];
+
+            while (newRank >= 0 && newRank < 8 && newFile >= 0 && newFile < 8) {
+                int toSquare = newRank * 8 + newFile;
+                if (occupacy.getData() & (1ULL << toSquare)) {
+                    break;
+                }
+                moves.emplace_back(fromSquare, toSquare, Bishop);
+                newRank += direction[0];
+                newFile += direction[1];
+            }
+        }
+    });
+}
+
+void Chess::generateQueenMoves(std::vector<BitMove> &moves, BitBoard queenBoard, BitBoard occupacy) {
+    queenBoard.forEachBit([&](int fromSquare) {
+        int rank = fromSquare / 8;
+        int file = fromSquare % 8;
+
+        // Generate moves in all eight directions
+        const int directions[8][2] = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1},
+            {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+        };
+
+        for (const auto& direction : directions) {
+            int newRank = rank + direction[0];
+            int newFile = file + direction[1];
+
+            while (newRank >= 0 && newRank < 8 && newFile >= 0 && newFile < 8) {
+                int toSquare = newRank * 8 + newFile;
+                if (occupacy.getData() & (1ULL << toSquare)) {
+                    break;
+                }
+                moves.emplace_back(fromSquare, toSquare, Queen);
+                newRank += direction[0];
+                newFile += direction[1];
+            }
+        }
+    });
+}
+
+void Chess::generatePawnMoves(std::vector<BitMove> &moves, BitBoard pawnBoard, BitBoard occupacy, BitBoard enemyPieces) {
+    pawnBoard.forEachBit([&](int fromSquare) {
+        int rank = fromSquare / 8;
+        int file = fromSquare % 8;
+        int direction = (getCurrentPlayer()->playerNumber() == 0) ? 1 : -1;
+
+        // Move forward
+        int toSquare = (rank + direction) * 8 + file;
+        if (toSquare >= 0 && toSquare < 64 && !(occupacy.getData() & (1ULL << toSquare)) && !(enemyPieces.getData() & (1ULL << toSquare))) {
+            moves.emplace_back(fromSquare, toSquare, Pawn);
+            // Double move from starting position
+            if ((rank == 1 && direction == 1) || (rank == 6 && direction == -1)) {
+                int doubleToSquare = (rank + 2 * direction) * 8 + file;
+                if (doubleToSquare >= 0 && doubleToSquare < 64 && !(occupacy.getData() & (1ULL << doubleToSquare)) && !(enemyPieces.getData() & (1ULL << doubleToSquare))) {
+                    moves.emplace_back(fromSquare, doubleToSquare, Pawn);
+                }
+            }
+        }
+
+        // Capture moves
+        const int captureOffsets[2] = { -1, 1 };
+        for (const auto& offset : captureOffsets) {
+            int captureFile = file + offset;
+            if (captureFile >= 0 && captureFile < 8) {
+                int captureToSquare = (rank + direction) * 8 + captureFile;
+                if (captureToSquare >= 0 && captureToSquare < 64 && (enemyPieces.getData() & (1ULL << captureToSquare))) {
+                    moves.emplace_back(fromSquare, captureToSquare, Pawn);
+                }
+            }
+        }
+    });
 }
 
 void Chess::generateKnightMoves(std::vector<BitMove> &moves, BitBoard knightBoard, BitBoard occupacy) {
     knightBoard.forEachBit([&](int fromSquare) {
         BitBoard(KnightAttacks[fromSquare]).forEachBit([&](int toSquare) {
-            if (isValidMove(BitMove(fromSquare, toSquare, Knight))) {
-                moves.emplace_back(fromSquare, toSquare, Knight);
-            }
+            if (occupacy.getData() & (1ULL << toSquare)) return;
+            moves.emplace_back(fromSquare, toSquare, Knight);
         });
     });
 }
 
-void Chess::generateKingMoves(std::vector<BitMove> &moves, BitBoard kingBoard) {
-    return;
+void Chess::generateKingMoves(std::vector<BitMove> &moves, BitBoard kingBoard, BitBoard occupacy) {
     kingBoard.forEachBit([&](int fromSquare) {
         BitBoard kingAttacks = BitBoard(0);
         int rank = fromSquare / 8;
@@ -169,9 +278,8 @@ void Chess::generateKingMoves(std::vector<BitMove> &moves, BitBoard kingBoard) {
         }
 
         kingAttacks.forEachBit([&](int toSquare) {
-            if (isValidMove(BitMove(fromSquare, toSquare, King))) {
-                moves.emplace_back(fromSquare, toSquare, King);
-            }
+            if (occupacy.getData() & (1ULL << toSquare)) return;
+            moves.emplace_back(fromSquare, toSquare, King);
         });
     });
 }
